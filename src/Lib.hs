@@ -20,13 +20,7 @@ readProgram = do
 
 runProgram :: Program -> IO ()
 runProgram program = do
-    tape <- newArray (0, tapeBounds - 1) 0 :: IO Tape
+    tape <- newArray (0, tapeLength - 1) 0 :: IO Tape
     instructionPointer <- newIORef (0 :: Int)
     dataPointer <- newIORef (0 :: Int)
     execute (program, tape, instructionPointer, dataPointer)
-
-tapeBounds :: Int
-tapeBounds = 30000
-
-tapeInitialValue :: Int8
-tapeInitialValue = 0

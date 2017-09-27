@@ -1,6 +1,8 @@
 module Interpreter
     ( tokenize
     , execute
+    , tapeLength
+    , tapeInitialValue
     ) where
 
 import Data.Int
@@ -28,12 +30,10 @@ execute :: ProgramState -> IO ()
 execute programState@(program, tape, ip, dp) = do
      ip' <- readIORef ip
      dp' <- readIORef dp
-     hasProgramTerminated <- return $  let (_, ub) = bounds program in ip' > ub
-     isDataPointerOutOfBounds <- fmap (\(lb, ub) -> lb <= dp' && dp' <= ub) $ getBounds tape
-     case (hasProgramTerminated, isDataPointerOutOfBounds) of
-         (True, _) -> return ()
-         (False, True) -> error "Data pointer went out of bounds."
-         _ -> do
+     let hasProgramTerminated = let (_, ub) = bounds program in ip' > ub
+     case hasProgramTerminated of
+         True -> return ()
+         False -> do
              apply programState $ program ! ip'
              execute programState
 
@@ -49,9 +49,15 @@ moveInstructionPointer :: InstructionPointer -> Int -> IO ()
 moveInstructionPointer ip offset = modifyIORef' ip (+ offset)
 
 moveDataPointer :: DataPointer -> Int -> IO ()
-moveDataPointer dp offset = modifyIORef' dp (+ offset)
+moveDataPointer dp offset = modifyIORef' dp (\n -> (offset + n) `mod` tapeLength)
 
 modifyTapeData :: Tape -> DataPointer -> Int8 -> IO ()
 modifyTapeData tape dp delta = do
     dp' <- readIORef dp
     writeArray tape dp' =<< (+ delta) <$> readArray tape dp'
+
+tapeLength :: Int
+tapeLength = 30000
+
+tapeInitialValue :: Int8
+tapeInitialValue = 0
