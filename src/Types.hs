@@ -14,7 +14,8 @@ import Data.Array.MArray
 import Data.Array.IO
 
 
-data Instruction = MOVR  -- move data pointer right
+data Instruction = NOPE  -- invalid instruction
+                 | MOVR  -- move data pointer right
                  | MOVL  -- move data pointer left
                  | INC   -- increment value stored at data pointer
                  | DEC   -- decrement value stored at data pointer

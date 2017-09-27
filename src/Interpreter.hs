@@ -10,6 +10,7 @@ import Data.IORef
 import Data.Array
 import Data.Array.MArray
 import Data.Array.IO
+import System.IO (hPutStrLn, stderr)
 
 import Types
 
@@ -24,7 +25,7 @@ tokenize c = case c of
     ',' -> READ
     '[' -> JMPF
     ']' -> JMPB
-    err -> error $ "Invalid input \'" ++ [err] ++ "\' encountered."
+    _   -> NOPE
 
 execute :: ProgramState -> IO ()
 execute programState@(program, tape, ip, dp) = do
@@ -39,6 +40,9 @@ execute programState@(program, tape, ip, dp) = do
 
 apply :: ProgramState -> Instruction -> IO ()
 apply (program, tape, ip, dp) instruction = case instruction of
+    NOPE -> do
+        ip' <- readIORef ip
+        hPutStrLn stderr $ "WARNING: Invalid character encountered at position " ++ show ip' ++ "!"
     MOVR -> moveDataPointer dp 1 >> moveInstructionPointer ip 1
     MOVL -> moveDataPointer dp (-1) >> moveInstructionPointer ip 1
     INC -> modifyTapeData tape dp 1 >> moveInstructionPointer ip 1
