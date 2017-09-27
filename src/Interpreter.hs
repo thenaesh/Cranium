@@ -47,7 +47,8 @@ apply (program, tape, ip, dp) instruction = case instruction of
     MOVL -> moveDataPointer dp (-1) >> moveInstructionPointer ip 1
     INC -> modifyTapeData tape dp 1 >> moveInstructionPointer ip 1
     DEC -> modifyTapeData tape dp (-1) >> moveInstructionPointer ip 1
-    _ -> undefined
+    WRITE -> readTapeData tape dp >>= (putChar . toEnum . fromEnum)
+    READ -> writeTapeData tape dp =<< (toEnum . fromEnum) <$> getChar
 
 moveInstructionPointer :: InstructionPointer -> Int -> IO ()
 moveInstructionPointer ip offset = modifyIORef' ip (+ offset)
@@ -59,6 +60,12 @@ modifyTapeData :: Tape -> DataPointer -> Int8 -> IO ()
 modifyTapeData tape dp delta = do
     dp' <- readIORef dp
     writeArray tape dp' =<< (+ delta) <$> readArray tape dp'
+
+readTapeData :: Tape -> DataPointer -> IO Int8
+readTapeData tape dp = readIORef dp >>= readArray tape
+
+writeTapeData :: Tape -> DataPointer -> Int8 -> IO ()
+writeTapeData tape dp value = readIORef dp >>= (\dp' -> writeArray tape dp' value)
 
 tapeLength :: Int
 tapeLength = 30000
