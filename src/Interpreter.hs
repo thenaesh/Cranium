@@ -39,16 +39,28 @@ execute programState@(program, tape, ip, dp) = do
              execute programState
 
 apply :: ProgramState -> Instruction -> IO ()
-apply (program, tape, ip, dp) instruction = case instruction of
-    NOPE -> do
-        ip' <- readIORef ip
-        hPutStrLn stderr $ "WARNING: Invalid character encountered at position " ++ show ip' ++ "!"
-    MOVR -> moveDataPointer dp 1 >> moveInstructionPointer ip 1
-    MOVL -> moveDataPointer dp (-1) >> moveInstructionPointer ip 1
-    INC -> modifyTapeData tape dp 1 >> moveInstructionPointer ip 1
-    DEC -> modifyTapeData tape dp (-1) >> moveInstructionPointer ip 1
-    PRINT -> readTapeData tape dp >>= (putChar . toEnum . fromEnum) >> moveInstructionPointer ip 1
-    READ -> (toEnum . fromEnum) <$> getChar >>= writeTapeData tape dp >> moveInstructionPointer ip 1
+apply (program, tape, ip, dp) instruction = do
+    case instruction of
+        NOPE -> do
+            ip' <- readIORef ip
+            hPutStrLn stderr $ "WARNING: Invalid character encountered at position " ++ show ip' ++ "!"
+        MOVR -> moveDataPointer dp 1
+        MOVL -> moveDataPointer dp (-1)
+        INC -> modifyTapeData tape dp 1
+        DEC -> modifyTapeData tape dp (-1)
+        PRINT -> readTapeData tape dp >>= (putChar . toEnum . fromEnum)
+        READ -> (toEnum . fromEnum) <$> getChar >>= writeTapeData tape dp
+        JMPF -> do
+            val <- readTapeData tape dp
+            case val of
+                0 -> advanceToMatchingBracket program ip
+                _ -> return ()
+        JMPB -> do
+            val <- readTapeData tape dp
+            case val of
+                0 -> return ()
+                _ -> rewindToMatchingBracket program ip
+    moveInstructionPointer ip 1
 
 moveInstructionPointer :: InstructionPointer -> Int -> IO ()
 moveInstructionPointer ip offset = modifyIORef' ip (+ offset)
@@ -66,6 +78,34 @@ readTapeData tape dp = readIORef dp >>= readArray tape
 
 writeTapeData :: Tape -> DataPointer -> Int8 -> IO ()
 writeTapeData tape dp value = readIORef dp >>= (\dp' -> writeArray tape dp' value)
+
+advanceToMatchingBracket :: Program -> InstructionPointer -> IO ()
+advanceToMatchingBracket program ip = f 1
+    where
+        f :: Int -> IO ()
+        f 0 = return ()
+        f n = do
+            modifyIORef ip (\x -> x + 1)
+            instruction <- fmap (program !) $ readIORef ip
+            let n' = case instruction of
+                    JMPF -> n + 1
+                    JMPB -> n - 1
+                    _ -> n
+            f n'
+
+rewindToMatchingBracket :: Program -> InstructionPointer -> IO ()
+rewindToMatchingBracket program ip = f 1
+    where
+        f :: Int -> IO ()
+        f 0 = return ()
+        f n = do
+            modifyIORef ip (\x -> x - 1)
+            instruction <- fmap (program !) $ readIORef ip
+            let n' = case instruction of
+                    JMPB -> n + 1
+                    JMPF -> n - 1
+                    _ -> n
+            f n'
 
 tapeLength :: Int
 tapeLength = 30000
