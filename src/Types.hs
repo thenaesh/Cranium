@@ -19,8 +19,8 @@ data Instruction = NOPE  -- invalid instruction
                  | MOVL  -- move data pointer left
                  | INC   -- increment value stored at data pointer
                  | DEC   -- decrement value stored at data pointer
-                 | WRITE -- write value stored at data pointer to STDOUT
-                 | READ  -- read value stored at data pointer from STDIN
+                 | PRINT -- print value stored at data pointer to STDOUT
+                 | READ  -- read value from STDIN and store at location pointed to by data pointer
                  | JMPF  -- move instruction pointer to after matching JMPB if value at data pointer is zero
                  | JMPB  -- move instruction pointer to after matching JMPF if value at data pointer is nonzero
 

@@ -21,7 +21,7 @@ tokenize c = case c of
     '<' -> MOVL
     '+' -> INC
     '-' -> DEC
-    '.' -> WRITE
+    '.' -> PRINT
     ',' -> READ
     '[' -> JMPF
     ']' -> JMPB
@@ -47,8 +47,8 @@ apply (program, tape, ip, dp) instruction = case instruction of
     MOVL -> moveDataPointer dp (-1) >> moveInstructionPointer ip 1
     INC -> modifyTapeData tape dp 1 >> moveInstructionPointer ip 1
     DEC -> modifyTapeData tape dp (-1) >> moveInstructionPointer ip 1
-    WRITE -> readTapeData tape dp >>= (putChar . toEnum . fromEnum)
-    READ -> writeTapeData tape dp =<< (toEnum . fromEnum) <$> getChar
+    PRINT -> readTapeData tape dp >>= (putChar . toEnum . fromEnum) >> moveInstructionPointer ip 1
+    READ -> (toEnum . fromEnum) <$> getChar >>= writeTapeData tape dp >> moveInstructionPointer ip 1
 
 moveInstructionPointer :: InstructionPointer -> Int -> IO ()
 moveInstructionPointer ip offset = modifyIORef' ip (+ offset)
